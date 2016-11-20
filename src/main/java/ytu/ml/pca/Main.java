@@ -1,5 +1,7 @@
 package ytu.ml.pca;
 
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class Main {
@@ -13,10 +15,20 @@ public class Main {
 		String fileName = "C:/Users/furkan/desktop/sayi.dat";
 		
 		
-		DataTable dataTale = new DataTable();
-		dataTale.loadDatFileToDataTable(fileName);
+		DataTable dataTable = new DataTable();
+		dataTable.loadDatFileToDataTable(fileName);
+
+		// Step 1
+		Map<Integer,List<String>> meanVectors = PCAUtil.calculateMeanVectors(dataTable.getTrainSamples());
+		dataTable.setTrainMeanVectorsMap(meanVectors);
 		
-		dataTale.toString();
+		// Step 2
+		Map<Integer,List<List<String>>> subtractVectors = PCAUtil.calculateSubtractVectors(dataTable.getTrainSamples(), dataTable.getTrainMeanVectorsMap());
+		dataTable.setSubtractVectorsMap(subtractVectors);
+		
+		// Step 3 calculate Covariance
+		
+		
 	}
 
 }

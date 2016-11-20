@@ -12,7 +12,7 @@ import user.furkan.util.ListUtils;
 import user.furkan.util.StringUtils;
 
 /**
- * Class for responsible for holding the samples seperated for traing and valitation.
+ * Class for responsible for holding the samples separated for train and valitation.
  * @author furkan
  *
  */
@@ -23,18 +23,39 @@ public class DataTable {
 	private Map<Integer,List<SampleObject>> trainSamples;
 	private List<SampleObject> validationSamples;
 	private List<SampleObject> allSamples;
+	private Map<Integer,List<String>> trainMeanVectorsMap;
+	private Map<Integer,List<List<String>>> subtractVectorsMap;
 	
 	public DataTable() {
 		trainSamples = new HashMap<>();
 		validationSamples = new ArrayList<>();
 		allSamples = new ArrayList<>();
+		trainMeanVectorsMap = new HashMap<>();
+		subtractVectorsMap = new HashMap<>();
 	}
 
 	
+	
+
+	public Map<Integer, List<List<String>>> getSubtractVectorsMap() {
+		return subtractVectorsMap;
+	}
+
+	public void setSubtractVectorsMap(Map<Integer, List<List<String>>> subtractVectorsMap) {
+		this.subtractVectorsMap = subtractVectorsMap;
+	}
+
+	public Map<Integer, List<String>> getTrainMeanVectorsMap() {
+		return trainMeanVectorsMap;
+	}
+
+	public void setTrainMeanVectorsMap(Map<Integer, List<String>> trainMeanVectorsMap) {
+		this.trainMeanVectorsMap = trainMeanVectorsMap;
+	}
+
 	public List<SampleObject> getAllSamples() {
 		return allSamples;
 	}
-
 
 	public void setAllSamples(List<SampleObject> allSamples) {
 		this.allSamples = allSamples;
