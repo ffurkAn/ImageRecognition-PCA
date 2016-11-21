@@ -18,12 +18,12 @@ public class Main {
 		DataTable dataTable = new DataTable();
 		dataTable.loadDatFileToDataTable(fileName);
 
-		// Step 1
-		Map<Integer,List<String>> meanVectors = PCAUtil.calculateMeanVectors(dataTable.getTrainSamples());
-		dataTable.setTrainMeanVectorsMap(meanVectors);
+		// Step 1 Calculate the mean face vector
+		List<String> meanVectors = PCAUtil.calculateMeanVectors(dataTable.getTrainSamples());
+		dataTable.setTrainMeanVector(meanVectors);
 		
 		// Step 2
-		Map<Integer,List<List<String>>> subtractVectors = PCAUtil.calculateSubtractVectors(dataTable.getTrainSamples(), dataTable.getTrainMeanVectorsMap());
+		Map<Integer,List<List<String>>> subtractVectors = PCAUtil.calculateSubtractVectors(dataTable.getTrainSamples(), dataTable.getTrainMeanVector());
 		dataTable.setSubtractVectorsMap(subtractVectors);
 		
 		// Step 3 calculate Covariance

@@ -23,31 +23,26 @@ public class PCAUtil {
 	 * @param trainSamples
 	 * @return
 	 */
-	public static Map<Integer, List<String>> calculateMeanVectors(Map<Integer, List<SampleObject>> trainSamples) {
+	public static List<String> calculateMeanVectors(Map<Integer, List<SampleObject>> trainSamples) {
 
-		Map<Integer,List<String>> returnMap = new HashMap<>();
+		List<String> returnMap = new ArrayList<>();
 		
-		// iterates the train samples for each classifier
-		for (Entry<Integer,List<SampleObject>> entry : trainSamples.entrySet()) {
+		// for every pixel index
+		for(int x = 0 ; x < 64 ; x++){
 			
-			List<String> meanVector = new ArrayList<>();
-			
-			//iterates all the pixel values
-			for (int i = 0; i< 64;i++) {
+			float total = 0.0f;
+			// iterates the train samples for each classifier
+			for (Entry<Integer,List<SampleObject>> entry : trainSamples.entrySet()) {
 				
-				int total = 0;
-				
-				// iterates train sets
-				for(int j = 0; j<5 ; j++){
+				for (SampleObject sample : entry.getValue()) {
 					
-					// increase the total by adding jth sample's ith pixel value
-					total += Integer.parseInt(entry.getValue().get(j).getSampleValues().get(i));
+					float value = Float.parseFloat(sample.getSampleValues().get(x));
+					total += value;
 				}
-				
-				float avaragePixelValue = (float)total / 5;
-				meanVector.add(Float.toString(avaragePixelValue));
 			}
-			returnMap.put(entry.getKey(), meanVector);
+			
+			float mean = total / 50;
+			returnMap.add(Float.toString(mean));
 		}
 		
 		return returnMap;
@@ -56,10 +51,10 @@ public class PCAUtil {
 	/**
 	 * subtract mean vector values from every train values
 	 * @param trainSamples
-	 * @param meanVectors
+	 * @param meanVector
 	 * @return
 	 */
-	public static Map<Integer,List<List<String>>> calculateSubtractVectors(Map<Integer, List<SampleObject>> trainSamples, Map<Integer,List<String>> meanVectors){
+	public static Map<Integer,List<List<String>>> calculateSubtractVectors(Map<Integer, List<SampleObject>> trainSamples, List<String> meanVector){
 		
 		Map<Integer,List<List<String>>> returnMap = new HashMap<>();
 		
@@ -68,14 +63,14 @@ public class PCAUtil {
 			
 			List<List<String>> listOfSubtractedSamples = new ArrayList<>();
 			
-			// Iterates the samples and calculate the subtract values for each pixel value
+			// Iterates the samples and calculate the subtracted values for each pixel value
 			for (SampleObject sample : entry.getValue()) {
 				
 				List<String> subtractedValueList = new ArrayList<>();
 				
 				for (int i = 0; i < sample.getSampleValues().size(); i++) {
 					
-					float meanValue = Float.parseFloat(meanVectors.get(entry.getKey()).get(i));
+					float meanValue = Float.parseFloat(meanVector.get(i));
 					float trainValue = Float.parseFloat(sample.getSampleValues().get(i));
 					
 					float subtractedValue = trainValue - meanValue;

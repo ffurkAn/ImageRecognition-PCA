@@ -23,14 +23,14 @@ public class DataTable {
 	private Map<Integer,List<SampleObject>> trainSamples;
 	private List<SampleObject> validationSamples;
 	private List<SampleObject> allSamples;
-	private Map<Integer,List<String>> trainMeanVectorsMap;
+	private List<String> trainMeanVector;
 	private Map<Integer,List<List<String>>> subtractVectorsMap;
 	
 	public DataTable() {
 		trainSamples = new HashMap<>();
 		validationSamples = new ArrayList<>();
 		allSamples = new ArrayList<>();
-		trainMeanVectorsMap = new HashMap<>();
+		trainMeanVector = new ArrayList<>();
 		subtractVectorsMap = new HashMap<>();
 	}
 
@@ -45,12 +45,13 @@ public class DataTable {
 		this.subtractVectorsMap = subtractVectorsMap;
 	}
 
-	public Map<Integer, List<String>> getTrainMeanVectorsMap() {
-		return trainMeanVectorsMap;
+
+	public List<String> getTrainMeanVector() {
+		return trainMeanVector;
 	}
 
-	public void setTrainMeanVectorsMap(Map<Integer, List<String>> trainMeanVectorsMap) {
-		this.trainMeanVectorsMap = trainMeanVectorsMap;
+	public void setTrainMeanVector(List<String> trainMeanVector) {
+		this.trainMeanVector = trainMeanVector;
 	}
 
 	public List<SampleObject> getAllSamples() {
@@ -60,7 +61,6 @@ public class DataTable {
 	public void setAllSamples(List<SampleObject> allSamples) {
 		this.allSamples = allSamples;
 	}
-
 
 	public Map<Integer, List<SampleObject>> getTrainSamples() {
 		return trainSamples;
