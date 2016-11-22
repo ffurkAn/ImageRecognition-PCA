@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
+import org.apache.commons.math3.linear.EigenDecomposition;
+
 import user.furkan.util.ListUtils;
 import user.furkan.util.StringUtils;
 
@@ -19,32 +21,45 @@ import user.furkan.util.StringUtils;
 public class DataTable {
 
 	Logger logger = Logger.getGlobal();
+	public static final int NUMBER_OF_CLASSES = 10;
+	public static final int NUMBER_OF_TRAIN_VECTORS = 5;
+	public static final int NUMBER_OF_PIXEL_VALUES = 64;
+	
+	
 	
 	private Map<Integer,List<SampleObject>> trainSamples;
 	private List<SampleObject> validationSamples;
 	private List<SampleObject> allSamples;
 	private List<String> trainMeanVector;
-	private Map<Integer,List<List<String>>> subtractVectorsMap;
+	private Map<Integer,List<List<String>>> meanCenteredVectorMap;
+	private double[][] covarianceMatrix;
+	private EigenDecomposition eigen;
 	
 	public DataTable() {
 		trainSamples = new HashMap<>();
 		validationSamples = new ArrayList<>();
 		allSamples = new ArrayList<>();
 		trainMeanVector = new ArrayList<>();
-		subtractVectorsMap = new HashMap<>();
+		meanCenteredVectorMap = new HashMap<>();
 	}
 
 	
-	
-
-	public Map<Integer, List<List<String>>> getSubtractVectorsMap() {
-		return subtractVectorsMap;
+	public double[][] getCovarianceMatrix() {
+		return covarianceMatrix;
 	}
 
-	public void setSubtractVectorsMap(Map<Integer, List<List<String>>> subtractVectorsMap) {
-		this.subtractVectorsMap = subtractVectorsMap;
+
+	public void setCovarianceMatrix(double[][] covarianceMatrix) {
+		this.covarianceMatrix = covarianceMatrix;
 	}
 
+	public Map<Integer, List<List<String>>> getMeanCenteredVectorMap() {
+		return meanCenteredVectorMap;
+	}
+
+	public void setMeanCenteredVectorMap(Map<Integer, List<List<String>>> meanCenteredVectorMap) {
+		this.meanCenteredVectorMap = meanCenteredVectorMap;
+	}
 
 	public List<String> getTrainMeanVector() {
 		return trainMeanVector;
@@ -155,7 +170,7 @@ public class DataTable {
 		
 		}
 		// If there are not 5 examples yet in train set
-		else if(trainSamples.get(sample.getClassifierNumber()).size()<5){
+		else if(trainSamples.get(sample.getClassifierNumber()).size()< NUMBER_OF_TRAIN_VECTORS){
 			trainSamples.get(sample.getClassifierNumber()).add(sample);
 		
 		}
