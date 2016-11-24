@@ -22,18 +22,22 @@ public class Main {
 		dataTable.loadDatFileToDataTable(fileName);
 
 		// Step 1 Calculate the mean face vector
-		List<String> meanVectors = PCAUtil.calculateMeanVectors(dataTable.getTrainSamples());
+		List<Double> meanVectors = PCAUtil.calculateMeanVectors(dataTable.getTrainSamples());
 		dataTable.setTrainMeanVector(meanVectors);
 		
 		// Step 2 Calculate mean centered vectors
-		Map<Integer,List<List<String>>> subtractVectors = PCAUtil.calculateSubtractVectors(dataTable.getTrainSamples(), dataTable.getTrainMeanVector());
+		Map<Integer,List<List<Double>>> subtractVectors = PCAUtil.calculateSubtractVectors(dataTable.getTrainSamples(), dataTable.getTrainMeanVector());
 		dataTable.setMeanCenteredVectorMap(subtractVectors);
 		
 		// Step 3 calculate Covariance
 		double[][] covarianceMatrix = PCAUtil.findCovarianceMatrix(dataTable.getMeanCenteredVectorMap());
 		dataTable.setCovarianceMatrix(covarianceMatrix);
 		
-		PCAUtil.compute(dataTable.getCovarianceMatrix(),threshold);
+		dataTable.setThreshold(threshold);
+		double[][] eigenSpace = PCAUtil.createEigenSpaceForKFeature(dataTable);
+		dataTable.setEigenSpace(eigenSpace);
+		
+		PCAUtil.test(dataTable);
 		
 	}
 

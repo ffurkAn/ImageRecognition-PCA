@@ -11,9 +11,9 @@ public class SampleObject {
 	private int lineId;
 	private String classifierNumberStr;
 	private Integer classifierNumber; // 0-9
-	private List<String> sampleValues; // holds the values separated with comma
+	private List<Double> sampleValues; // holds the values separated with comma
 	
-	public SampleObject(int lineId, String classifierNumberStr, int classifierNumber, List<String> sampleValues) {
+	public SampleObject(int lineId, String classifierNumberStr, int classifierNumber, List<Double> sampleValues) {
 		super();
 		this.lineId = lineId;
 		this.classifierNumberStr = classifierNumberStr;
@@ -50,11 +50,11 @@ public class SampleObject {
 		this.classifierNumber = classifierNumber;
 	}
 
-	public List<String> getSampleValues() {
+	public List<Double> getSampleValues() {
 		return sampleValues;
 	}
 
-	public void setSampleValues(List<String> sampleValues) {
+	public void setSampleValues(List<Double> sampleValues) {
 		this.sampleValues = sampleValues;
 	}
 

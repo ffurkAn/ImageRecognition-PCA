@@ -30,10 +30,14 @@ public class DataTable {
 	private Map<Integer,List<SampleObject>> trainSamples;
 	private List<SampleObject> validationSamples;
 	private List<SampleObject> allSamples;
-	private List<String> trainMeanVector;
-	private Map<Integer,List<List<String>>> meanCenteredVectorMap;
+	private List<Double> trainMeanVector;
+	private Map<Integer,List<List<Double>>> meanCenteredVectorMap;
 	private double[][] covarianceMatrix;
 	private EigenDecomposition eigen;
+	private double threshold;
+	private int numberOfNewFeatures;
+	private double[][] eigenSpace;
+	private double[][] meanCenteredTrainMatrix;
 	
 	public DataTable() {
 		trainSamples = new HashMap<>();
@@ -42,30 +46,67 @@ public class DataTable {
 		trainMeanVector = new ArrayList<>();
 		meanCenteredVectorMap = new HashMap<>();
 	}
-
 	
+	
+
+	public double[][] getMeanCenteredTrainMatrix() {
+		return meanCenteredTrainMatrix;
+	}
+
+
+
+	public void setMeanCenteredTrainMatrix(double[][] meanCenteredTrainMatrix) {
+		this.meanCenteredTrainMatrix = meanCenteredTrainMatrix;
+	}
+
+
+
+	public double[][] getEigenSpace() {
+		return eigenSpace;
+	}
+
+	public void setEigenSpace(double[][] eigenSpace) {
+		this.eigenSpace = eigenSpace;
+	}
+
+
+	public int getNumberOfNewFeatures() {
+		return numberOfNewFeatures;
+	}
+
+	public void setNumberOfNewFeatures(int numberOfNewFeatures) {
+		this.numberOfNewFeatures = numberOfNewFeatures;
+	}
+
+	public double getThreshold() {
+		return threshold;
+	}
+
+	public void setThreshold(double threshold) {
+		this.threshold = threshold;
+	}
+
 	public double[][] getCovarianceMatrix() {
 		return covarianceMatrix;
 	}
-
 
 	public void setCovarianceMatrix(double[][] covarianceMatrix) {
 		this.covarianceMatrix = covarianceMatrix;
 	}
 
-	public Map<Integer, List<List<String>>> getMeanCenteredVectorMap() {
+	public Map<Integer, List<List<Double>>> getMeanCenteredVectorMap() {
 		return meanCenteredVectorMap;
 	}
 
-	public void setMeanCenteredVectorMap(Map<Integer, List<List<String>>> meanCenteredVectorMap) {
+	public void setMeanCenteredVectorMap(Map<Integer, List<List<Double>>> meanCenteredVectorMap) {
 		this.meanCenteredVectorMap = meanCenteredVectorMap;
 	}
 
-	public List<String> getTrainMeanVector() {
+	public List<Double> getTrainMeanVector() {
 		return trainMeanVector;
 	}
 
-	public void setTrainMeanVector(List<String> trainMeanVector) {
+	public void setTrainMeanVector(List<Double> trainMeanVector) {
 		this.trainMeanVector = trainMeanVector;
 	}
 
@@ -100,7 +141,7 @@ public class DataTable {
 		
 		for (SampleObject sample : allSamples) {
 			
-			for (String s : sample.getSampleValues()) {
+			for (Double s : sample.getSampleValues()) {
 				System.out.print(s+",");
 			}
 			System.out.print(sample.getClassifierNumberStr() + "\n");
@@ -138,14 +179,14 @@ public class DataTable {
 						
 						if(!StringUtils.isEmpty(pixelValue)){
 							
-							sample.getSampleValues().add(pixelValue);
+							sample.getSampleValues().add(Double.parseDouble(pixelValue));
 						}
 					}
 					
 					// remove the classifier from sample
-					String classLabel = sample.getSampleValues().remove(sample.getSampleValues().size()-1);
-					sample.setClassifierNumberStr(classLabel.toLowerCase());
-					sample.setClassifierNumber(Integer.parseInt(classLabel));
+					Double classLabel = sample.getSampleValues().remove(sample.getSampleValues().size()-1);
+					sample.setClassifierNumberStr(classLabel.toString());
+					sample.setClassifierNumber((int)classLabel.doubleValue());
 					
 					// add sample into appropriate set
 					addSampleIntoAppropriateSet(sample);
