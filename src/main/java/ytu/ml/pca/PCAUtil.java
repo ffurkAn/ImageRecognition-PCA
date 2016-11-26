@@ -18,6 +18,7 @@ import org.apache.commons.math3.linear.RealVector;
 import org.apache.commons.math3.stat.correlation.Covariance;
 import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.apache.commons.math3.util.MathUtils;
+import org.omg.CORBA.TRANSACTION_MODE;
 
 /**
  * Class responsible for all the calcualtion needed for PCA
@@ -104,7 +105,7 @@ public class PCAUtil {
 	 * @param meanCenteredVectors
 	 * @return covariance matrix of the created matrix
 	 */
-	public static double[][] findCovarianceMatrix(Map<Integer,List<List<Double>>> meanCenteredVectors){
+	public static RealMatrix findCovarianceMatrix(Map<Integer,List<List<Double>>> meanCenteredVectors){
 
 		// intialize 64x50 matrix
 		double[][] meanCenteredMatrix = getCenteredTrainMatrix(meanCenteredVectors);
@@ -136,99 +137,160 @@ public class PCAUtil {
 	 * @param returnMatrix
 	 * @return
 	 */
-	private static double[][] covariance(double[][] meanCenteredMatrix) {
+	private static RealMatrix covariance(double[][] meanCenteredMatrix) {
 		RealMatrix mx = MatrixUtils.createRealMatrix(meanCenteredMatrix);
 		RealMatrix covarianceMatrix = new Covariance(mx.transpose()).getCovarianceMatrix();
-		return covarianceMatrix.getData();
+		return covarianceMatrix;
 	}
 
-	public static double[][] createEigenSpaceForKFeature(DataTable dataTable) {
+	public static RealMatrix createTrainEigenSpace(DataTable dataTable) {
 
-		double[][] covarianceMatrix = dataTable.getCovarianceMatrix();
-		RealMatrix matrix = MatrixUtils.createRealMatrix(covarianceMatrix);
+		RealMatrix covarianceMatrix = dataTable.getCovarianceMatrix();
 
-		EigenDecomposition eigen = new EigenDecomposition(matrix);
+		EigenDecomposition eigen = new EigenDecomposition(covarianceMatrix);
+		dataTable.setEigen(eigen);
 		double[] eigenValues = eigen.getRealEigenvalues(); // it gives the eigenvalues sorted
 
-		int eigenVectorLength = eigenValues.length;
 		double sumOfEigenValues = sumOfValues(eigenValues);
 		double total = 0.0;
 		int i = 0; // last index of the eligible eigen value
-		
+
 		while(total/sumOfEigenValues < dataTable.getThreshold()){
 			total = total + eigenValues[i];
 			i++;
 		}
-		
+
 		dataTable.setNumberOfNewFeatures(i-1);
-		
+
 		// creating eigenspace by forming eigenvectors as matrix
 		// rows as feature, columns as value
 		logger.info("");
-		
-		double[][] eigenvectorMatrix = new double[dataTable.getNumberOfNewFeatures()][eigenVectorLength];
-		
-		for(int featureCounter = 0 ; featureCounter < dataTable.getNumberOfNewFeatures() ; featureCounter++){
-			
-				RealVector vector = eigen.getEigenvector(featureCounter); 
-				for (int columnCounter = 0; columnCounter < eigenVectorLength; columnCounter++) {
-					eigenvectorMatrix[featureCounter][columnCounter] = vector.getEntry(columnCounter);
-				}
-		}
-		
-		RealMatrix eigenspaceVectorMatrix = MatrixUtils.createRealMatrix(eigenvectorMatrix);
-		RealMatrix meanCenteredMeanMatrix = MatrixUtils.createRealMatrix(getCenteredTrainMatrix(dataTable.getMeanCenteredVectorMap()));
-		
-		RealMatrix eigenspaceMatrix = eigenspaceVectorMatrix.multiply(meanCenteredMeanMatrix);
-		
-		return eigenspaceMatrix.getData();
-		
+
+		double[][] eigenvectorMatrix = getEigenVectorMatrix(dataTable);
+		RealMatrix eigenspaceVectorMatrix = MatrixUtils.createRealMatrix(eigenvectorMatrix); // eigen vector matrix - feature sayýsý X eigen value sayýsý (64)
+		RealMatrix meanCenteredTrainMatrix = MatrixUtils.createRealMatrix(getCenteredTrainMatrix(dataTable.getMeanCenteredVectorMap())); // mean centered train matrix - pixel value X train data sayýsý
+
+		RealMatrix trainEigenSpace = eigenspaceVectorMatrix.multiply(meanCenteredTrainMatrix);
+
+		//satýrlarý özellik dizisi yapmak için transpoze aldýk
+		return trainEigenSpace.transpose();
+
 	}
 
-	
-	public static void test(DataTable dataTable) {
-		
-		List<SampleObject> validationSamples = dataTable.getValidationSamples();
-		List<Double> meanVector = dataTable.getTrainMeanVector();
-		
-		// computing mean centered validation vectors
-		SampleObject[][] meanCenteredValidationMatrix = new SampleObject[dataTable.getNumberOfNewFeatures()][validationSamples.size()];
-		
-		for(int row = 0; row < dataTable.getNumberOfNewFeatures() ; row++){
-			
-			for (int validationSampleCounter = 0; validationSampleCounter < validationSamples.size(); validationSampleCounter++) {
-				
-				SampleObject validationSample = validationSamples.get(validationSampleCounter);
-				List<Double> subtractedVector = getSubtractedVector(validationSample,meanVector);
-				validationSamples.get(validationSampleCounter).setSampleValues(subtractedVector);
-				
-				meanCenteredValidationMatrix[row][validationSampleCounter] = validationSample;
+	private static double[][] getEigenVectorMatrix(DataTable dataTable) {
+
+		EigenDecomposition eigen = dataTable.getEigen();
+		int eigenVectorLength = eigen.getRealEigenvalues().length;
+
+		double[][] eigenvectorMatrix = new double[dataTable.getNumberOfNewFeatures()][eigenVectorLength];
+
+		for(int featureCounter = 0 ; featureCounter < dataTable.getNumberOfNewFeatures() ; featureCounter++){
+
+			RealVector vector = eigen.getEigenvector(featureCounter); 
+			for (int columnCounter = 0; columnCounter < eigenVectorLength; columnCounter++) {
+				eigenvectorMatrix[featureCounter][columnCounter] = vector.getEntry(columnCounter);
 			}
 		}
-		
-		System.out.println("asdas");
-		
+		return eigenvectorMatrix;
 	}
 
-	private static List<Double> getSubtractedVector(SampleObject sampleObject, List<Double> meanVector) {
-	
-		List<Double> subtractedVector = new ArrayList<>();
-		
-		for (int valueCounter = 0; valueCounter < sampleObject.getSampleValues().size(); valueCounter++) {
-			double subtractedValue = sampleObject.getSampleValues().get(valueCounter) - meanVector.get(valueCounter);
-			
-			subtractedVector.add(subtractedValue);
+	public static RealMatrix createTestEigenSpace(DataTable dataTable) {
+
+		// feature sayýsý X eigen value sayýsý
+		double[][] eigenvectorMatrix = getEigenVectorMatrix(dataTable);
+
+		// test data sayýsý X pixel sayýsý
+		double[][] meanCenteredTestMatrix = new double[dataTable.getValidationSamples().size()][dataTable.NUMBER_OF_PIXEL_VALUES]; 
+
+		int testSampleCounter = 0;
+		for (SampleObject validationSample : dataTable.getValidationSamples()) {
+
+			meanCenteredTestMatrix[testSampleCounter] = getSubtractedVector(validationSample, dataTable.getTrainMeanVector()); 
+
 		}
-		
-		return subtractedVector;
-			
+
+		RealMatrix eigenSpaceVectorMatrix = MatrixUtils.createRealMatrix(eigenvectorMatrix); // feat
+		RealMatrix meanCenteredMatrix = MatrixUtils.createRealMatrix(meanCenteredTestMatrix); // meanCenteredTestMatrix
+
+		RealMatrix testEigenSpace = eigenSpaceVectorMatrix.multiply(meanCenteredMatrix.transpose());
+
+		//satýrlarý özellik dizisi yapmak için transpoze aldýks
+		return testEigenSpace.transpose();
 	}
-	
+
+	private static double[] getSubtractedVector(SampleObject sampleObject, List<Double> meanVector) {
+
+		double[] subtractedVector = new double[sampleObject.getSampleValues().size()];
+
+		for (int valueCounter = 0; valueCounter < sampleObject.getSampleValues().size(); valueCounter++) {
+			subtractedVector[valueCounter] = sampleObject.getSampleValues().get(valueCounter) - meanVector.get(valueCounter);
+		}
+
+		return subtractedVector;
+	}
+
 	private static double sumOfValues(double[] eigenValues) {
 		double result = 0;
 		for (double value:eigenValues)
 			result += value;
 		return result;
+	}
+
+	public static void test(RealMatrix trainEigenSpace, List<Integer> list, RealMatrix testEigenSpace, List<Integer> list2) {
+
+		// test datasýný iterate ediyoruz, her özellik için traindeki 50 veriye ait 3 özellik ile distance alýorz
+		
+		double[][] trainMatrix = trainEigenSpace.getData();
+		double[][] testMatrix = testEigenSpace.getData();
+		
+		int numberOfTrueRecognition = 0;
+		int numberOfFalseRecognition = 0;
+		
+		for(int testDataCounter = 0; testDataCounter<testMatrix[0].length; testDataCounter++){
+
+			double minDistance = 999999;
+			int minDistanceIndex = -1;
+			
+			for(int trainDataCounter = 0; trainDataCounter < trainMatrix[0].length ; trainDataCounter++){
+
+				double distance = getDistance(testMatrix[testDataCounter],trainMatrix[trainDataCounter]);
+
+				if(distance < minDistance){
+					minDistance = distance;
+					minDistanceIndex = trainDataCounter;
+				}
+			}
+			
+			// Compare wheter its true or false
+			if(list.get(minDistanceIndex).intValue() == list2.get(testDataCounter).intValue()){
+				
+				numberOfTrueRecognition++;
+			}else{
+				numberOfFalseRecognition++;
+			}
+			
+			
+		}
+		
+		double accuracy = ((double)numberOfTrueRecognition / (numberOfTrueRecognition + numberOfFalseRecognition)) * 100;
+		
+		System.out.printf("\nAccuracy of the tree is: %.3f\n",accuracy);
+
+
+	}
+
+	/**
+	 * Euclidean Distance
+	 * @param testVector
+	 * @param trainVector
+	 * @return
+	 */
+	private static double getDistance(double[] testVector, double[] trainVector) {
+		double diff_square_sum = 0.0;
+		for (int i = 0; i < testVector.length; i++) {
+			diff_square_sum += (testVector[i] - trainVector[i]) * (testVector[i] - trainVector[i]);
+		}
+		return Math.sqrt(diff_square_sum);
 	}
 
 

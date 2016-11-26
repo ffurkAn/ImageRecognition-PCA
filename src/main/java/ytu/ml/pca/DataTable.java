@@ -9,6 +9,7 @@ import java.util.Scanner;
 import java.util.logging.Logger;
 
 import org.apache.commons.math3.linear.EigenDecomposition;
+import org.apache.commons.math3.linear.RealMatrix;
 
 import user.furkan.util.ListUtils;
 import user.furkan.util.StringUtils;
@@ -30,14 +31,17 @@ public class DataTable {
 	private Map<Integer,List<SampleObject>> trainSamples;
 	private List<SampleObject> validationSamples;
 	private List<SampleObject> allSamples;
+	private List<Integer> trainImageValueList;
+	private List<Integer> testImageValueList;
 	private List<Double> trainMeanVector;
 	private Map<Integer,List<List<Double>>> meanCenteredVectorMap;
-	private double[][] covarianceMatrix;
+	private RealMatrix covarianceMatrix;
 	private EigenDecomposition eigen;
 	private double threshold;
 	private int numberOfNewFeatures;
-	private double[][] eigenSpace;
-	private double[][] meanCenteredTrainMatrix;
+	private RealMatrix trainEigenSpace;
+	private RealMatrix testEigenSpace;
+	private RealMatrix meanCenteredTrainMatrix;
 	
 	public DataTable() {
 		trainSamples = new HashMap<>();
@@ -45,29 +49,43 @@ public class DataTable {
 		allSamples = new ArrayList<>();
 		trainMeanVector = new ArrayList<>();
 		meanCenteredVectorMap = new HashMap<>();
+		trainImageValueList = new ArrayList<>();
+		testImageValueList = new ArrayList<>();
 	}
 	
 	
 
-	public double[][] getMeanCenteredTrainMatrix() {
-		return meanCenteredTrainMatrix;
+	public EigenDecomposition getEigen() {
+		return eigen;
+	}
+
+	public void setEigen(EigenDecomposition eigen) {
+		this.eigen = eigen;
+	}
+
+
+	public List<Integer> getTrainImageValueList() {
+		return trainImageValueList;
 	}
 
 
 
-	public void setMeanCenteredTrainMatrix(double[][] meanCenteredTrainMatrix) {
-		this.meanCenteredTrainMatrix = meanCenteredTrainMatrix;
+	public void setTrainImageValueList(List<Integer> trainImageValueList) {
+		this.trainImageValueList = trainImageValueList;
 	}
 
 
 
-	public double[][] getEigenSpace() {
-		return eigenSpace;
+	public List<Integer> getTestImageValueList() {
+		return testImageValueList;
 	}
 
-	public void setEigenSpace(double[][] eigenSpace) {
-		this.eigenSpace = eigenSpace;
+
+
+	public void setTestImageValueList(List<Integer> testImageValueList) {
+		this.testImageValueList = testImageValueList;
 	}
+
 
 
 	public int getNumberOfNewFeatures() {
@@ -86,12 +104,36 @@ public class DataTable {
 		this.threshold = threshold;
 	}
 
-	public double[][] getCovarianceMatrix() {
+	public RealMatrix getCovarianceMatrix() {
 		return covarianceMatrix;
 	}
 
-	public void setCovarianceMatrix(double[][] covarianceMatrix) {
+	public void setCovarianceMatrix(RealMatrix covarianceMatrix) {
 		this.covarianceMatrix = covarianceMatrix;
+	}
+
+	public RealMatrix getTrainEigenSpace() {
+		return trainEigenSpace;
+	}
+
+	public void setTrainEigenSpace(RealMatrix trainEigenSpace) {
+		this.trainEigenSpace = trainEigenSpace;
+	}
+
+	public RealMatrix getTestEigenSpace() {
+		return testEigenSpace;
+	}
+
+	public void setTestEigenSpace(RealMatrix testEigenSpace) {
+		this.testEigenSpace = testEigenSpace;
+	}
+
+	public RealMatrix getMeanCenteredTrainMatrix() {
+		return meanCenteredTrainMatrix;
+	}
+
+	public void setMeanCenteredTrainMatrix(RealMatrix meanCenteredTrainMatrix) {
+		this.meanCenteredTrainMatrix = meanCenteredTrainMatrix;
 	}
 
 	public Map<Integer, List<List<Double>>> getMeanCenteredVectorMap() {
@@ -208,16 +250,21 @@ public class DataTable {
 			List<SampleObject> samples = new ArrayList<>();
 			samples.add(sample);
 			trainSamples.put(sample.getClassifierNumber(),samples);
+			// to compare real iamges with test images, I store classifiers in list
+			trainImageValueList.add(sample.getClassifierNumber());
 		
 		}
 		// If there are not 5 examples yet in train set
 		else if(trainSamples.get(sample.getClassifierNumber()).size()< NUMBER_OF_TRAIN_VECTORS){
 			trainSamples.get(sample.getClassifierNumber()).add(sample);
-		
+			// to compare real iamges with test images, I store classifiers in list
+			trainImageValueList.add(sample.getClassifierNumber());
 		}
 		// add into train set
 		else{
 			validationSamples.add(sample);
+			// to compare real iamges with test images, I store classifiers in list
+			testImageValueList.add(sample.getClassifierNumber());
 		}
 	}
 	

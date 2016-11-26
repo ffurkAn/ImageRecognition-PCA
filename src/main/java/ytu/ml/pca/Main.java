@@ -2,9 +2,11 @@ package ytu.ml.pca;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import org.apache.commons.math3.linear.EigenDecomposition;
+import org.apache.commons.math3.linear.RealMatrix;
 
 public class Main {
 
@@ -12,6 +14,7 @@ public class Main {
 	
 	public static void main(String[] args) throws Exception {
 		
+		Logger logger = Logger.getGlobal();
 		
 		long trainingStartTime = System.currentTimeMillis();
 		String fileName = "C:/Users/furkan/desktop/sayi.dat";
@@ -30,15 +33,19 @@ public class Main {
 		dataTable.setMeanCenteredVectorMap(subtractVectors);
 		
 		// Step 3 calculate Covariance
-		double[][] covarianceMatrix = PCAUtil.findCovarianceMatrix(dataTable.getMeanCenteredVectorMap());
+		RealMatrix covarianceMatrix = PCAUtil.findCovarianceMatrix(dataTable.getMeanCenteredVectorMap());
 		dataTable.setCovarianceMatrix(covarianceMatrix);
 		
 		dataTable.setThreshold(threshold);
-		double[][] eigenSpace = PCAUtil.createEigenSpaceForKFeature(dataTable);
-		dataTable.setEigenSpace(eigenSpace);
+		RealMatrix trainEigenSpace = PCAUtil.createTrainEigenSpace(dataTable);
+		dataTable.setTrainEigenSpace(trainEigenSpace);
 		
-		PCAUtil.test(dataTable);
+		RealMatrix testEigenSpace = PCAUtil.createTestEigenSpace(dataTable);
+		dataTable.setTestEigenSpace(testEigenSpace);
 		
+		PCAUtil.test(dataTable.getTrainEigenSpace(), dataTable.getTrainImageValueList(),dataTable.getTestEigenSpace(),dataTable.getTestImageValueList());
+		
+		logger.info("Total time of building, pruning and testing of algotihm is: "+ TimeUnit.MILLISECONDS.toSeconds((System.currentTimeMillis() - trainingStartTime)) + " seconds.");
 	}
 
 }
