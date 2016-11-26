@@ -19,28 +19,28 @@ public class Main {
 		long trainingStartTime = System.currentTimeMillis();
 		String fileName = "C:/Users/furkan/desktop/sayi.dat";
 		
-		double threshold = 0.6;
+		double threshold = 0.4;
 		
 		DataTable dataTable = new DataTable();
 		dataTable.loadDatFileToDataTable(fileName);
 
 		// Step 1 Calculate the mean face vector
-		List<Double> meanVectors = PCAUtil.calculateMeanVectors(dataTable.getTrainSamples());
+		double[] meanVectors = PCAUtil.calculateMeanVector(dataTable.getTrainSamples());
 		dataTable.setTrainMeanVector(meanVectors);
 		
 		// Step 2 Calculate mean centered vectors
-		Map<Integer,List<List<Double>>> subtractVectors = PCAUtil.calculateSubtractVectors(dataTable.getTrainSamples(), dataTable.getTrainMeanVector());
-		dataTable.setMeanCenteredVectorMap(subtractVectors);
+		double[][] subtractVectors = PCAUtil.calculateMeanCenteredTrainMatrix(dataTable.getTrainSamples(), dataTable.getTrainMeanVector());
+		dataTable.setMeanCenteredTrainMatrix(subtractVectors);
 		
 		// Step 3 calculate Covariance
-		RealMatrix covarianceMatrix = PCAUtil.findCovarianceMatrix(dataTable.getMeanCenteredVectorMap());
+		double[][] covarianceMatrix = PCAUtil.findCovarianceMatrix(dataTable.getMeanCenteredTrainMatrix());
 		dataTable.setCovarianceMatrix(covarianceMatrix);
 		
 		dataTable.setThreshold(threshold);
-		RealMatrix trainEigenSpace = PCAUtil.createTrainEigenSpace(dataTable);
+		double[][] trainEigenSpace = PCAUtil.createTrainEigenSpace(dataTable);
 		dataTable.setTrainEigenSpace(trainEigenSpace);
 		
-		RealMatrix testEigenSpace = PCAUtil.createTestEigenSpace(dataTable);
+		double[][] testEigenSpace = PCAUtil.createTestEigenSpace(dataTable);
 		dataTable.setTestEigenSpace(testEigenSpace);
 		
 		PCAUtil.test(dataTable.getTrainEigenSpace(), dataTable.getTrainImageValueList(),dataTable.getTestEigenSpace(),dataTable.getTestImageValueList());

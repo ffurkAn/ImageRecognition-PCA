@@ -1,5 +1,6 @@
 package ytu.ml.pca;
 
+import java.awt.Robot;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +21,9 @@ import org.apache.commons.math3.stat.descriptive.summary.Sum;
 import org.apache.commons.math3.util.MathUtils;
 import org.omg.CORBA.TRANSACTION_MODE;
 
+import Jama.EigenvalueDecomposition;
+import Jama.Matrix;
+
 /**
  * Class responsible for all the calcualtion needed for PCA
  * @author furkan
@@ -36,26 +40,23 @@ public class PCAUtil {
 	 * @param trainSamples
 	 * @return
 	 */
-	public static List<Double> calculateMeanVectors(Map<Integer, List<SampleObject>> trainSamples) {
+	public static double[] calculateMeanVector(double[][] trainSamples) {
 
-		List<Double> returnMap = new ArrayList<>();
+		double[] returnMap = new double[64];
 
 		// for every pixel index
 		for(int x = 0 ; x < 64 ; x++){
 
 			double total = 0.0;
 			// iterates the train samples for each classifier
-			for (Entry<Integer,List<SampleObject>> entry : trainSamples.entrySet()) {
-
-				for (SampleObject sample : entry.getValue()) {
-
-					double value = sample.getSampleValues().get(x);
-					total += value;
-				}
+			
+			for(int trainRow = 0; trainRow < trainSamples.length ; trainRow++){
+				double value = trainSamples[trainRow][x];
+				total += value;
 			}
-
+			
 			double mean = total / 50;
-			returnMap.add(mean);
+			returnMap[x] = mean;
 		}
 
 		return returnMap;
@@ -67,89 +68,60 @@ public class PCAUtil {
 	 * @param meanVector
 	 * @return
 	 */
-	public static Map<Integer,List<List<Double>>> calculateSubtractVectors(Map<Integer, List<SampleObject>> trainSamples, List<Double> meanVector){
+	public static double[][] calculateMeanCenteredTrainMatrix(double[][] trainSamples, double[] meanVector){
 
-		Map<Integer,List<List<Double>>> returnMap = new HashMap<>();
+		double[][] meanCenteredTrainMatrix = new double[Constants.NUMBER_OF_TRAIN_VECTORS][Constants.NUMBER_OF_PIXEL_VALUES];
 
 		// Iterates the sample set for each classifier
-		for (Entry<Integer,List<SampleObject>> entry : trainSamples.entrySet()) {
-
-			List<List<Double>> listOfMeanCenteredSamples = new ArrayList<>();
-
-			// Iterates the samples and calculate the meanCentered values for each pixel value
-			for (SampleObject sample : entry.getValue()) {
-
-				List<Double> meanCenteredValueList = new ArrayList<>();
-
-				for (int i = 0; i < sample.getSampleValues().size(); i++) {
-
-					double meanValue = meanVector.get(i);
-					double trainValue = sample.getSampleValues().get(i);
-
-					double meanCenteredValue = trainValue - meanValue;
-					meanCenteredValueList.add(meanCenteredValue);
-				}
-
-				listOfMeanCenteredSamples.add(meanCenteredValueList);
-			}
-
-			returnMap.put(entry.getKey(), listOfMeanCenteredSamples);
+		for(int row = 0;row < trainSamples.length ; row++){
+			
+			double[] subtractedValue = getSubtractedVector(trainSamples[row], meanVector);
+			meanCenteredTrainMatrix[row] = subtractedValue;
 		}
-		return returnMap;
+			
+		return meanCenteredTrainMatrix;
 
 	}
 
-
-	/**
-	 * Creates the matrix which includes double values for the pixels and
-	 * @param meanCenteredVectors
-	 * @return covariance matrix of the created matrix
-	 */
-	public static RealMatrix findCovarianceMatrix(Map<Integer,List<List<Double>>> meanCenteredVectors){
-
-		// intialize 64x50 matrix
-		double[][] meanCenteredMatrix = getCenteredTrainMatrix(meanCenteredVectors);
-		return covariance(meanCenteredMatrix);
-
-	}
-
-	private static double[][] getCenteredTrainMatrix(Map<Integer, List<List<Double>>> meanCenteredVectors) {
-		double[][] meanCenteredMatrix = new double[DataTable.NUMBER_OF_PIXEL_VALUES][DataTable.NUMBER_OF_CLASSES*DataTable.NUMBER_OF_TRAIN_VECTORS];
-
-		int column = 0;
-		for (Entry<Integer,List<List<Double>>> entry : meanCenteredVectors.entrySet()) {
-			for (List<Double> meanCenteredVector: entry.getValue()) {
-
-				int row = 0;
-				for (Double pixelValue : meanCenteredVector) {
-
-					meanCenteredMatrix[row][column] = pixelValue;
-					row++;
-				}
-				column++;
-			}
-		}
-		return meanCenteredMatrix;
-	}
 
 	/**
 	 *  creates covariance matrix of matrix which is formed by mean centered vectors
 	 * @param returnMatrix
 	 * @return
 	 */
-	private static RealMatrix covariance(double[][] meanCenteredMatrix) {
-		RealMatrix mx = MatrixUtils.createRealMatrix(meanCenteredMatrix);
-		RealMatrix covarianceMatrix = new Covariance(mx.transpose()).getCovarianceMatrix();
-		return covarianceMatrix;
+	public static double[][] findCovarianceMatrix(double[][] meanCenteredVectors){
+
+//		yazdir(meanCenteredVectors);
+		RealMatrix mx = MatrixUtils.createRealMatrix(meanCenteredVectors);
+		RealMatrix covarianceMatrix = new Covariance(mx).getCovarianceMatrix();
+		
+		return covarianceMatrix.getData();
 	}
 
-	public static RealMatrix createTrainEigenSpace(DataTable dataTable) {
+	
+	private static void yazdir(double[][] meanCenteredVectors) {
 
-		RealMatrix covarianceMatrix = dataTable.getCovarianceMatrix();
+		for(int x = 0; x< meanCenteredVectors.length ; x++){
+			
+			for(int y=0 ; y < meanCenteredVectors[x].length; y++){
+				
+				System.out.print(meanCenteredVectors[x][y]+",");
+			}
+			
+			System.out.print("\n");
+		}
+		
+	}
+
+	public static double[][] createTrainEigenSpace(DataTable dataTable) {
+
+		RealMatrix covarianceMatrix = MatrixUtils.createRealMatrix(dataTable.getCovarianceMatrix());
 
 		EigenDecomposition eigen = new EigenDecomposition(covarianceMatrix);
 		dataTable.setEigen(eigen);
-		double[] eigenValues = eigen.getRealEigenvalues(); // it gives the eigenvalues sorted
+		
+		double d = eigen.getRealEigenvalue(0);
+		double[] eigenValues = eigen.getRealEigenvalues();// it gives the eigenvalues sorted
 
 		double sumOfEigenValues = sumOfValues(eigenValues);
 		double total = 0.0;
@@ -168,12 +140,12 @@ public class PCAUtil {
 
 		double[][] eigenvectorMatrix = getEigenVectorMatrix(dataTable);
 		RealMatrix eigenspaceVectorMatrix = MatrixUtils.createRealMatrix(eigenvectorMatrix); // eigen vector matrix - feature sayýsý X eigen value sayýsý (64)
-		RealMatrix meanCenteredTrainMatrix = MatrixUtils.createRealMatrix(getCenteredTrainMatrix(dataTable.getMeanCenteredVectorMap())); // mean centered train matrix - pixel value X train data sayýsý
+		RealMatrix meanCenteredTrainMatrix = MatrixUtils.createRealMatrix(dataTable.getMeanCenteredTrainMatrix()); // mean centered train matrix - pixel value X train data sayýsý
 
-		RealMatrix trainEigenSpace = eigenspaceVectorMatrix.multiply(meanCenteredTrainMatrix);
+		RealMatrix trainEigenSpace = eigenspaceVectorMatrix.multiply(meanCenteredTrainMatrix.transpose());
 
 		//satýrlarý özellik dizisi yapmak için transpoze aldýk
-		return trainEigenSpace.transpose();
+		return trainEigenSpace.transpose().getData();
 
 	}
 
@@ -194,16 +166,16 @@ public class PCAUtil {
 		return eigenvectorMatrix;
 	}
 
-	public static RealMatrix createTestEigenSpace(DataTable dataTable) {
+	public static double[][] createTestEigenSpace(DataTable dataTable) {
 
 		// feature sayýsý X eigen value sayýsý
 		double[][] eigenvectorMatrix = getEigenVectorMatrix(dataTable);
 
 		// test data sayýsý X pixel sayýsý
-		double[][] meanCenteredTestMatrix = new double[dataTable.getValidationSamples().size()][dataTable.NUMBER_OF_PIXEL_VALUES]; 
+		double[][] meanCenteredTestMatrix = new double[Constants.NUMBER_OF_TEST_VECTORS][Constants.NUMBER_OF_PIXEL_VALUES]; 
 
 		int testSampleCounter = 0;
-		for (SampleObject validationSample : dataTable.getValidationSamples()) {
+		for (double[] validationSample : dataTable.getTestSamples()) {
 
 			meanCenteredTestMatrix[testSampleCounter] = getSubtractedVector(validationSample, dataTable.getTrainMeanVector()); 
 
@@ -215,15 +187,15 @@ public class PCAUtil {
 		RealMatrix testEigenSpace = eigenSpaceVectorMatrix.multiply(meanCenteredMatrix.transpose());
 
 		//satýrlarý özellik dizisi yapmak için transpoze aldýks
-		return testEigenSpace.transpose();
+		return testEigenSpace.transpose().getData();
 	}
 
-	private static double[] getSubtractedVector(SampleObject sampleObject, List<Double> meanVector) {
+	private static double[] getSubtractedVector(double[] vector, double[] meanVector) {
 
-		double[] subtractedVector = new double[sampleObject.getSampleValues().size()];
+		double[] subtractedVector = new double[vector.length];
 
-		for (int valueCounter = 0; valueCounter < sampleObject.getSampleValues().size(); valueCounter++) {
-			subtractedVector[valueCounter] = sampleObject.getSampleValues().get(valueCounter) - meanVector.get(valueCounter);
+		for (int valueCounter = 0; valueCounter < vector.length; valueCounter++) {
+			subtractedVector[valueCounter] = vector[valueCounter] - meanVector[valueCounter];
 		}
 
 		return subtractedVector;
@@ -236,24 +208,21 @@ public class PCAUtil {
 		return result;
 	}
 
-	public static void test(RealMatrix trainEigenSpace, List<Integer> list, RealMatrix testEigenSpace, List<Integer> list2) {
+	public static void test(double[][] trainSpaceMatrix, List<Integer> trainImageValue, double[][] testEigenMatrix, List<Integer> testImageValue) {
 
 		// test datasýný iterate ediyoruz, her özellik için traindeki 50 veriye ait 3 özellik ile distance alýorz
-		
-		double[][] trainMatrix = trainEigenSpace.getData();
-		double[][] testMatrix = testEigenSpace.getData();
 		
 		int numberOfTrueRecognition = 0;
 		int numberOfFalseRecognition = 0;
 		
-		for(int testDataCounter = 0; testDataCounter<testMatrix[0].length; testDataCounter++){
+		for(int testDataCounter = 0; testDataCounter<testEigenMatrix.length; testDataCounter++){
 
 			double minDistance = 999999;
 			int minDistanceIndex = -1;
 			
-			for(int trainDataCounter = 0; trainDataCounter < trainMatrix[0].length ; trainDataCounter++){
+			for(int trainDataCounter = 0; trainDataCounter < trainSpaceMatrix.length ; trainDataCounter++){
 
-				double distance = getDistance(testMatrix[testDataCounter],trainMatrix[trainDataCounter]);
+				double distance = getDistance(testEigenMatrix[testDataCounter],trainSpaceMatrix[trainDataCounter]);
 
 				if(distance < minDistance){
 					minDistance = distance;
@@ -262,7 +231,7 @@ public class PCAUtil {
 			}
 			
 			// Compare wheter its true or false
-			if(list.get(minDistanceIndex).intValue() == list2.get(testDataCounter).intValue()){
+			if(trainImageValue.get(minDistanceIndex).intValue() == testImageValue.get(testDataCounter).intValue()){
 				
 				numberOfTrueRecognition++;
 			}else{
@@ -288,7 +257,7 @@ public class PCAUtil {
 	private static double getDistance(double[] testVector, double[] trainVector) {
 		double diff_square_sum = 0.0;
 		for (int i = 0; i < testVector.length; i++) {
-			diff_square_sum += (testVector[i] - trainVector[i]) * (testVector[i] - trainVector[i]);
+			diff_square_sum += (trainVector[i] - testVector[i]) * (trainVector[i] - testVector[i]);
 		}
 		return Math.sqrt(diff_square_sum);
 	}
